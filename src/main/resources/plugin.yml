@@ -1,0 +1,4 @@
+name: DailyRecipeShuffle
+version: '${version}'
+main: io.github.karashilys.dailyrecipeshuffle.RecipeShufflePlugin
+api-version: '26.3'
