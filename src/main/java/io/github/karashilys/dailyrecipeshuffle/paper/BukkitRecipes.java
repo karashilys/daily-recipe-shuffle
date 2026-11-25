@@ -21,7 +21,7 @@ import org.bukkit.inventory.StonecuttingRecipe;
 /**
  * BukkitのレシピとコアのデータとのBukkit依存の変換をまとめる。
  */
-final class BukkitRecipes {
+public final class BukkitRecipes {
 
     private BukkitRecipes() {}
 
@@ -31,7 +31,7 @@ final class BukkitRecipes {
      * @param r レシピ
      * @return 種別
      */
-    static RecipeKind kindOf(Recipe r) {
+    public static RecipeKind kindOf(Recipe r) {
         // 装飾は ComplexRecipe も実装しているため、先に判定する
         if (r instanceof SmithingTrimRecipe) {
             return RecipeKind.SMITHING_TRIM;
@@ -60,7 +60,7 @@ final class BukkitRecipes {
      * @param result 完成品
      * @return 識別文字列
      */
-    static String resultId(ItemStack result) {
+    public static String resultId(ItemStack result) {
         String components = result.hasItemMeta() ? result.getItemMeta().getAsComponentString() : "";
         return result.getType().getKey() + " x" + result.getAmount() + components;
     }

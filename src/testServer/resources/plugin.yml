@@ -1,0 +1,6 @@
+name: DailyRecipeShuffleTest
+version: '${version}'
+main: io.github.karashilys.dailyrecipeshuffle.testserver.ShuffleTestPlugin
+api-version: '26.3'
+description: 'テスト専用。DailyRecipeShuffleの分類と差し替え結果を実サーバーで検証する。リリースには含めない。'
+depend: [DailyRecipeShuffle]

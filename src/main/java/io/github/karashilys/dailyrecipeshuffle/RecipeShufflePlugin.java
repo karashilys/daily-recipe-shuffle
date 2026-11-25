@@ -27,6 +27,11 @@ public final class RecipeShufflePlugin extends JavaPlugin {
         Bukkit.getScheduler().runTaskTimer(this, this::checkDay, CHECK_INTERVAL_TICKS, CHECK_INTERVAL_TICKS);
     }
 
+    /** @return レシピの差し替えを行うオブジェクト。有効化前は null */
+    public RecipeShuffler shuffler() {
+        return shuffler;
+    }
+
     /** プラグイン無効化時に、差し替えたレシピを元に戻す。 */
     @Override
     public void onDisable() {

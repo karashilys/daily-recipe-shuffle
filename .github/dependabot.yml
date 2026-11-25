@@ -1,0 +1,19 @@
+version: 2
+updates:
+  # ワークフローの actions(コミットSHAとバージョンのコメントを更新する)
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  # Gradleの依存とプラグイン(build.gradle.kts)
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      gradle:
+        patterns: ["*"]

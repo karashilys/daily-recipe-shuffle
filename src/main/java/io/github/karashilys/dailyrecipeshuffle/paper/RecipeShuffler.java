@@ -4,6 +4,7 @@ import io.github.karashilys.dailyrecipeshuffle.core.RecipeCategory;
 import io.github.karashilys.dailyrecipeshuffle.core.RecipeClassifier;
 import io.github.karashilys.dailyrecipeshuffle.core.ShuffleTable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -22,15 +23,28 @@ import org.bukkit.inventory.Recipe;
  */
 public final class RecipeShuffler {
 
+    /**
+     * 1件のレシピへの割り当て。
+     *
+     * @param key 配置側のレシピのキー
+     * @param original 配置側の元のレシピ
+     * @param sourceKey 完成品セットの出どころのレシピのキー
+     * @param result 割り当てた完成品。差し替えに失敗して元のまま登録した場合は null
+     */
+    public record Assignment(NamespacedKey key, Recipe original, NamespacedKey sourceKey, ItemStack result) {}
+
     private final Logger log;
-    /** プールのレシピの、差し替え前の元のレシピ。 */
-    private Map<NamespacedKey, Recipe> originals = Map.of();
-    /** 差し替えで各レシピに割り当てた完成品。 */
-    private Map<NamespacedKey, ItemStack> applied = Map.of();
+    /** 現在の割り当て(キーの文字列順)。 */
+    private Map<NamespacedKey, Assignment> assignments = Map.of();
 
     /** @param log ロガー */
     public RecipeShuffler(Logger log) {
         this.log = log;
+    }
+
+    /** @return 現在の割り当て(読み取り専用、キーの文字列順)。未適用なら空 */
+    public Map<NamespacedKey, Assignment> assignments() {
+        return Collections.unmodifiableMap(assignments);
     }
 
     /**
@@ -52,35 +66,36 @@ public final class RecipeShuffler {
         Map<String, String> table = ShuffleTable.compute(resultIds, seed, day);
 
         List<Recipe> rebuilt = new ArrayList<>(pool.size());
-        Map<NamespacedKey, ItemStack> newApplied = new LinkedHashMap<>();
+        Map<NamespacedKey, Assignment> next = new LinkedHashMap<>();
         for (Map.Entry<String, String> e : table.entrySet()) {
             NamespacedKey key = keyByString.get(e.getKey());
+            NamespacedKey sourceKey = keyByString.get(e.getValue());
             Recipe base = pool.get(key);
-            ItemStack result = pool.get(keyByString.get(e.getValue())).getResult();
+            ItemStack result = pool.get(sourceKey).getResult();
             try {
                 rebuilt.add(BukkitRecipes.rebuild(base, result));
-                newApplied.put(key, result);
+                next.put(key, new Assignment(key, base, sourceKey, result));
             } catch (RuntimeException ex) {
                 log.log(Level.WARNING, "レシピを差し替えられないため、元のまま登録します: " + key, ex);
                 rebuilt.add(base);
+                next.put(key, new Assignment(key, base, sourceKey, null));
             }
         }
 
         replace(pool.keySet(), rebuilt);
-        originals = pool;
-        applied = newApplied;
+        assignments = next;
         log.info(String.format("day %d の対応表を適用しました (プール %d 件, %.1fms)",
                 day, pool.size(), (System.nanoTime() - t0) / 1e6));
     }
 
     /** 差し替えたレシピを元に戻す。 */
     public void restore() {
-        if (applied.isEmpty()) {
+        if (assignments.isEmpty()) {
             return;
         }
-        List<NamespacedKey> present = applied.keySet().stream().filter(k -> Bukkit.getRecipe(k) != null).toList();
-        replace(present, new ArrayList<>(originals.values()));
-        applied = Map.of();
+        List<NamespacedKey> present = assignments.keySet().stream().filter(k -> Bukkit.getRecipe(k) != null).toList();
+        replace(present, assignments.values().stream().map(Assignment::original).toList());
+        assignments = Map.of();
     }
 
     /**
@@ -124,9 +139,9 @@ public final class RecipeShuffler {
             RecipeCategory category = RecipeClassifier.classify(key.toString(), BukkitRecipes.kindOf(r));
             switch (category) {
                 case POOL -> {
-                    ItemStack ours = applied.get(key);
-                    boolean stillApplied = ours != null && ours.equals(r.getResult()) && originals.containsKey(key);
-                    pool.put(key, stillApplied ? originals.get(key) : r);
+                    Assignment a = assignments.get(key);
+                    boolean stillApplied = a != null && a.result() != null && a.result().equals(r.getResult());
+                    pool.put(key, stillApplied ? a.original() : r);
                 }
                 case UNCLASSIFIED -> unclassified.add(key + " (" + r.getClass().getName() + ")");
                 case FIXED, EXCLUDED -> {

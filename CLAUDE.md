@@ -17,6 +17,12 @@ Claudeはサーバーの標準入力に触れないため、RCONでコマンド�
 - 停止: `uv run tools/rcon.py "stop"`。プロセスの強制終了はしない。
 - ログ: `run/logs/latest.log`
 - 再起動運用: コードを変えたら `stop` で止め、`./gradlew runServer` で起動し直す(`runServer` が再ビルドする)。
+- 実サーバー検証(仕様書10.2, 10.3): `./gradlew serverTest` で、`run/` でサーバーを起動 → 対応表の適用後に全検証 → 停止まで自動で行い、FAILならビルドが失敗する。`runServer` 中のサーバーがあると衝突するので先に止める。結果は `run/plugins/DailyRecipeShuffleTest/report.txt`。検証の途中でレシピを元に戻して適用し直し、データパックの再読み込みも行う。
+- 起動中のサーバーで手動検証するときは、対応表の適用ログ(`day N の対応表を適用しました`)が出てから `uv run tools/rcon.py "drstest"` を実行する。
+- リリース(`.github/workflows/release.yml`): `git tag v0.1.0` → `git push origin v0.1.0` で、ビルド・単体テスト・実サーバー検証を通したjarをGitHub Releaseに添付する。版はタグから `-PreleaseVersion` で渡し、普段のビルドは `0.1.0-SNAPSHOT`。
+- actions はコミットSHAで固定し(`# vX.Y.Z` のコメント付き)、Dependabot(月1、グループ化)で更新する。PRはCIが緑ならそのままマージする運用。
+- CI(GitHub Actions、`.github/workflows/ci.yml`): `./gradlew build` の後に `./gradlew serverTest -PacceptEula=true` を実行する。`-PacceptEula=true` はPaperのEULA同意フラグ(`-Dcom.mojang.eula.agree=true`)を付ける。ローカルでは付けず、`run/eula.txt` で同意する。
+- テスト専用プラグイン: `src/testServer`(別プラグイン `DailyRecipeShuffleTest`、`depend: [DailyRecipeShuffle]`)。`testServerJar` タスクでビルドし、`runServer` にだけ読み込む。リリース用の `jar` には含めない。
 - `run/server.properties` に必要な設定: `enable-rcon=true`、`rcon.password`(任意の文字列)、`server-ip=127.0.0.1`(ローカル限定にするため)、ホワイトリストを使わないなら `white-list=false`。`run/` はgitignore対象で、消すと設定も消えるため入れ直す。初回起動後に `run/eula.txt` の `eula=true` への書き換えはユーザーが行う
 
 ## アーキテクチャ(仕様書の要点)
@@ -46,6 +52,6 @@ Claudeはサーバーの標準入力に触れないため、RCONでコマンド�
 
 ## 規約
 
-- `docs/spec.md` の編集ルール: 本文には現在確定している仕様のみ記載し、「修正」「確定」等の編集行為を示す語や検討経緯・却下案は書かない(必要なら別紙の決定ログ)。未検証事項は `scratch/verification.md` で管理する。
+- `docs/spec.md` の編集ルール: 本文には現在確定している仕様のみ記載し、「修正」「確定」等の編集行為を示す語や検討経緯・却下案は書かない(必要なら別紙の決定ログ)。未検証事項は本文に書かない。
 - リリース版にデバッグ/隠しコマンドや権限による特別動作を含めない。動作確認はバニラのコマンドを使い、検証補助機能はテスト専用ビルドにのみ含める。
 - 仕様書・ドキュメントは日本語。
