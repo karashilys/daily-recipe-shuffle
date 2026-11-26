@@ -3,6 +3,8 @@ package io.github.karashilys.dailyrecipeshuffle;
 import io.github.karashilys.dailyrecipeshuffle.core.GameDay;
 import io.papermc.paper.event.server.ServerResourcesReloadedEvent;
 import io.github.karashilys.dailyrecipeshuffle.paper.RecipeShuffler;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.event.EventHandler;
@@ -52,7 +54,12 @@ public final class RecipeShufflePlugin extends JavaPlugin implements Listener {
             return;
         }
         shuffler.apply(base.getSeed(), day);
+        boolean dayChanged = lastDay != null;
         lastDay = day;
+        // 起動直後や再読み込み後の適用は日数の変化ではないので、通知しない
+        if (dayChanged) {
+            Bukkit.broadcast(Component.text("レシピがシャッフルされました", NamedTextColor.GOLD));
+        }
     }
 
     /**
