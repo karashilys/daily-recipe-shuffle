@@ -6,10 +6,12 @@ import io.github.karashilys.dailyrecipeshuffle.core.ShuffleTable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.bukkit.Bukkit;
@@ -36,6 +38,8 @@ public final class RecipeShuffler {
     private final Logger log;
     /** 現在の割り当て(キーの文字列順)。 */
     private Map<NamespacedKey, Assignment> assignments = Map.of();
+    /** 直前に警告した未分類レシピの一覧。同じ内容を日数ごとに繰り返し出さないために保持する。 */
+    private Set<String> reportedUnclassified = Set.of();
 
     /** @param log ロガー */
     public RecipeShuffler(Logger log) {
@@ -93,8 +97,13 @@ public final class RecipeShuffler {
         if (assignments.isEmpty()) {
             return;
         }
+        // 外部で削除されたレシピまで復活させないよう、現在も存在するものだけを戻す
         List<NamespacedKey> present = assignments.keySet().stream().filter(k -> Bukkit.getRecipe(k) != null).toList();
-        replace(present, assignments.values().stream().map(Assignment::original).toList());
+        Set<NamespacedKey> presentSet = new HashSet<>(present);
+        replace(present, assignments.values().stream()
+                .filter(a -> presentSet.contains(a.key()))
+                .map(Assignment::original)
+                .toList());
         assignments = Map.of();
     }
 
@@ -148,7 +157,10 @@ public final class RecipeShuffler {
                 }
             }
         }
-        if (!unclassified.isEmpty()) {
+        Set<String> current = new HashSet<>(unclassified);
+        boolean changed = !current.equals(reportedUnclassified);
+        reportedUnclassified = current;
+        if (!unclassified.isEmpty() && changed) {
             log.severe("未分類のレシピが " + unclassified.size() + " 件あります。入れ替えずにそのまま残します: " + unclassified);
         }
         return pool;
