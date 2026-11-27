@@ -2,3 +2,8 @@ name: DailyRecipeShuffle
 version: '${version}'
 main: io.github.karashilys.dailyrecipeshuffle.RecipeShufflePlugin
 api-version: '26.3'
+description: 'ゲーム内で朝(日数が変わる)ごとに、クラフト系レシピの完成品セットを別レシピと入れ替える。'
+author: karashilys
+website: https://github.com/karashilys/daily-recipe-shuffle
+# ワールド読み込み後に起動する(既定値)。レシピの分類は起動完了1秒後に行う。
+load: POSTWORLD
