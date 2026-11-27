@@ -109,11 +109,14 @@ public final class RecipeShuffler {
 
     /**
      * レシピを一括で削除してから一括で登録する。1件ずつのAPIは呼ぶたびに全プレイヤーへ再送するため使わない。
+     * 削除・登録の際にサーバーが全プレイヤーの実績をディスクから読み直すため、先にプレイヤーを保存する。
      *
      * @param remove 削除するキー
      * @param add 登録するレシピ
      */
     private void replace(Iterable<NamespacedKey> remove, List<Recipe> add) {
+        // 一括APIは全プレイヤーの実績をディスクから読み直す。未保存の進捗が消えるため、先に保存する
+        Bukkit.savePlayers();
         Bukkit.removeRecipes(remove);
         try {
             Bukkit.addRecipes(add);
